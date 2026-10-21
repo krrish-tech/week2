@@ -1,0 +1,97 @@
+library(tidyverse)
+
+library(readxl)
+
+library(naniar)
+raw_data <- read_excel("C:/Users/krris/Downloads/imf-dm-export-20261021.xls", sheet = 1)
+glimpse(raw_data)
+
+summary(raw_data)
+cleaned_data <- raw_data %>%
+  
+  mutate(across(everything(), ~ na_if(as.character(.), "no data"))) %>%
+  
+  mutate(across(everything(), ~ na_if(., "...")))
+gg_miss_var(cleaned_data, show_pct = TRUE) +
+  
+  labs(title = "Percentage of Missing Values per Column")
+long_data <- cleaned_data %>%
+  
+  pivot_longer(
+    
+    cols = matches("^[0-9]{4}$"), # Select columns that are 4-digit years
+    
+    names_to = "Year",
+    
+    values_to = "GDP_Growth_Rate"
+    
+  )
+long_data <- long_data %>%
+  
+  mutate(
+    
+    Year = as.integer(Year),
+    
+    GDP_Growth_Rate = as.numeric(GDP_Growth_Rate)
+    
+  )
+Q1 <- quantile(long_data$GDP_Growth_Rate, 0.25, na.rm = TRUE)
+
+Q3 <- quantile(long_data$GDP_Growth_Rate, 0.75, na.rm = TRUE)
+
+IQR_val <- Q3 - Q1
+
+lower_bound <- Q1 - 1.5 * IQR_val
+
+upper_bound <- Q3 + 1.5 * IQR_val
+
+# Flag outliers
+
+long_data_flagged <- long_data %>%
+  
+  mutate(Is_Outlier = if_else(GDP_Growth_Rate < lower_bound | GDP_Growth_Rate > upper_bound, TRUE, FALSE))
+transformed_data <- long_data_flagged %>%
+  
+  mutate(
+    
+    Decade = paste0(floor(Year / 10) * 10, "s"),
+    
+    Growth_Category = case_when(
+      
+      GDP_Growth_Rate < 0 ~ "Recession",
+      
+      GDP_Growth_Rate >= 0 & GDP_Growth_Rate <= 3 ~ "Low Growth",
+      
+      GDP_Growth_Rate > 3 & GDP_Growth_Rate <= 6 ~ "Moderate Growth",
+      
+      GDP_Growth_Rate > 6 ~ "High Growth",
+      
+      TRUE ~ "Unknown"
+      
+    )
+    
+  )
+transformed_data <- transformed_data %>%
+  
+  mutate(
+    
+    Growth_Category = factor(
+      
+      Growth_Category, 
+      
+      levels = c("Recession", "Low Growth", "Moderate Growth", "High Growth"),
+      
+      ordered = TRUE
+      
+    ),
+    
+    Country_Factor = as.factor(Country)
+    
+  )
+transformed_data <- transformed_data %>%
+  
+  mutate(
+    
+    GDP_Growth_Scaled = scale(GDP_Growth_Rate)[, 1]
+    
+  )
