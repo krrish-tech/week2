@@ -45,7 +45,6 @@ lower_bound <- Q1 - 1.5 * IQR_val
 
 upper_bound <- Q3 + 1.5 * IQR_val
 
-# Flag outliers
 
 long_data_flagged <- long_data %>%
   
