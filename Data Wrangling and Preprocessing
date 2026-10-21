@@ -94,3 +94,30 @@ transformed_data <- transformed_data %>%
     GDP_Growth_Scaled = scale(GDP_Growth_Rate)[, 1]
     
   )
+
+# Case Study A: Winsorize extreme growth rate outliers using a custom function
+
+transformed_data <- transformed_data %>%
+  mutate(GDP_Growth_Winsorized = {
+    q <- quantile(GDP_Growth_Rate, probs = c(0.01, 0.99), na.rm = TRUE)
+    pmax(q[1], pmin(GDP_Growth_Rate, q[2]))
+  })
+
+
+# Case Study B: Time-series linear interpolation with a safety check for groups < 2 points
+if (!require("imputeTS")) install.packages("imputeTS")
+library(imputeTS)
+
+safe_na_interpolation <- function(x) {
+  if (sum(!is.na(x)) >= 2) {
+    na_interpolation(x, option = "linear")
+  } else {
+    x
+  }
+}
+
+transformed_data <- transformed_data %>%
+  group_by(Country) %>%
+  mutate(GDP_Growth_Interpolated = safe_na_interpolation(GDP_Growth_Rate)) %>%
+  ungroup()
+
