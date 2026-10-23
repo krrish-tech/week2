@@ -1,4 +1,3 @@
-# Load required libraries
 library(tidyverse)
 library(tidymodels)
 library(readxl)
@@ -6,7 +5,7 @@ library(ranger)
 library(glmnet)
 
 # 1. Data Ingestion & Pivoting from Long to Wide Format
-raw_data <- read_excel("C:/Users/krris/Downloads/data.xlsx", sheet = "Data")
+raw_data <- read_excel("data.xlsx", sheet = "Data")
 
 df_pivoted <- raw_data %>%
   filter(dimension == "Sex") %>%
